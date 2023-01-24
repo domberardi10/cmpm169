@@ -1,67 +1,118 @@
-// sketch.js - purpose and description here
-// Author: Your Name
-// Date:
+// Experiment 2 sketch file
+// Dominic Berardi
+// 1/23/2023
 
-// Here is how you might set up an OOP p5.js project
-// Note that p5.js looks for a file called sketch.js
 
-// Constants - User-servicable parts
-// In a longer project I like to put these in a separate file
-const VALUE1 = 1;
-const VALUE2 = 2;
+let lcBlue;
+let lcOrange;
+let lcArray = [];
 
-// Globals
-let myInstance;
-let canvasContainer;
-
-class MyClass {
-    constructor(param1, param2) {
-        this.property1 = param1;
-        this.property2 = param2;
-    }
-
-    myMethod() {
-        // code to run when method is called
-    }
+class Lightcycle {
+  constructor(x, y, color, dir) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.dir = dir;
+    this.delta = 0;
+    this.time = random(0.5, 3);
+  }
 }
 
-// setup() function is called once when the program starts
+function findNextDir(currDir){
+  if (currDir == 1 || currDir == 2){
+    return int(random(3, 5));
+  }
+  else if (currDir == 3 || currDir == 4){
+    return int(random(1, 3));
+  }
+}
+
+function moveLightcycle(lc){
+  lc.delta += deltaTime / 1000;
+  stroke(lc.color);
+  line(lc.x, lc.y, lc.x, lc.y);
+    // UP
+    if (lc.dir == 1) {
+      lc.y -= 1;
+      lc.y -= 1;
+    }
+    // DOWN
+    else if (lc.dir == 2) {
+      lc.y += 1;
+      lc.y += 1;
+    }
+    // LEFT
+    else if (lc.dir == 3) {
+      lc.x -= 1;
+      lc.x -= 1;
+    }
+    // RIGHT
+    else if (lc.dir == 4) {
+      lc.x += 1;
+      lc.x += 1;
+    }
+  // NEXT DIR
+  if (lc.delta > lc.time) {
+    lc.dir = findNextDir(lc.dir);
+    lc.time = random(0.5, 3);
+    lc.delta = 0;
+  }
+}
+
+function overrideDir(lc){
+  if (lc.dir == 1){
+    if (lc.y - 5 <= 15){
+      lc.dir = findNextDir(lc.dir);
+      lc.time = random(0.5, 3);
+      lc.delta = 0;
+    }
+  }
+  else if (lc.dir == 2){
+    if (lc.y + 5 >= 585){
+      lc.dir = findNextDir(lc.dir);
+      lc.time = random(0.5, 3);
+      lc.delta = 0;
+    }
+  }
+  else if (lc.dir == 3){
+    if (lc.x - 5 <= 15){
+      lc.dir = findNextDir(lc.dir);
+      lc.time = random(0.5, 3);
+      lc.delta = 0;
+    }
+  }
+  else if (lc.dir == 4){
+    if (lc.x + 5 >= 585){
+      lc.dir = findNextDir(lc.dir);
+      lc.time = random(0.5, 3);
+      lc.delta = 0;
+    }
+  }
+}
+
+function mouseClicked(){
+  let rStr = str(int(random(0, 255)));
+  let gStr = str(int(random(0, 255)));
+  let bStr = str(int(random(0, 255)));
+  let rgbStr = "rgb(" + rStr + "," + gStr + "," + bStr + ")";
+  lcArray.push(new Lightcycle(mouseX, mouseY, rgbStr, int(random(1, 5))));
+}
+
 function setup() {
-    // place our canvas, making it fit our container
-    canvasContainer = $("#canvas-container");
-    let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
-    canvas.parent("canvas-container");
-    // resize canvas is the page is resized
-    $(window).resize(function() {
-        console.log("Resizing...");
-        resizeCanvas(canvasContainer.width(), canvasContainer.height());
-    });
-    // create an instance of the class
-    myInstance = new MyClass(VALUE1, VALUE2);
-
-    var centerHorz = windowWidth / 2;
-    var centerVert = windowHeight / 2;
+  createCanvas(600, 600);
+  background("#000000");
+  strokeWeight(4);
+  lcBlue = new Lightcycle(100, 100, "#6495ED", 4);
+  lcOrange = new Lightcycle(500, 500, "#FFA500", 3);
 }
 
-// draw() function is called repeatedly, it's the main animation loop
 function draw() {
-    background(220);    
-    // call a method on the instance
-    myInstance.myMethod();
-
-    // Put drawings here
-    var centerHorz = canvasContainer.width() / 2 - 125;
-    var centerVert = canvasContainer.height() / 2 - 125;
-    fill(234, 31, 81);
-    noStroke();
-    rect(centerHorz, centerVert, 250, 250);
-    fill(255);
-    textStyle(BOLD);
-    textSize(140);
-    text("p5*", centerHorz + 10, centerVert + 200);
-}
-
-// mousePressed() function is called once after every time a mouse button is pressed
-function mousePressed() {
-    // code to run when mouse is pressed
+  overrideDir(lcBlue);
+  moveLightcycle(lcBlue);
+  overrideDir(lcOrange);
+  moveLightcycle(lcOrange);
+  for (let lc = 0; lc < lcArray.length; lc++){
+    overrideDir(lcArray[lc]);
+    moveLightcycle(lcArray[lc]);
+  }
 }
