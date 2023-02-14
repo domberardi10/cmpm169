@@ -1,67 +1,219 @@
-// sketch.js - purpose and description here
-// Author: Your Name
-// Date:
+let cubeArray = [];
+let currSteps;
+let stepCount;
+let stepInterval;
 
-// Here is how you might set up an OOP p5.js project
-// Note that p5.js looks for a file called sketch.js
-
-// Constants - User-servicable parts
-// In a longer project I like to put these in a separate file
-const VALUE1 = 1;
-const VALUE2 = 2;
-
-// Globals
-let myInstance;
-let canvasContainer;
-
-class MyClass {
-    constructor(param1, param2) {
-        this.property1 = param1;
-        this.property2 = param2;
-    }
-
-    myMethod() {
-        // code to run when method is called
-    }
+function preload(){
+    moveSound = loadSound('blipSelect.wav');
+    dieSound = loadSound('explosion.wav');
 }
 
-// setup() function is called once when the program starts
 function setup() {
-    // place our canvas, making it fit our container
-    canvasContainer = $("#canvas-container");
-    let canvas = createCanvas(canvasContainer.width(), canvasContainer.height());
-    canvas.parent("canvas-container");
-    // resize canvas is the page is resized
-    $(window).resize(function() {
-        console.log("Resizing...");
-        resizeCanvas(canvasContainer.width(), canvasContainer.height());
-    });
-    // create an instance of the class
-    myInstance = new MyClass(VALUE1, VALUE2);
-
-    var centerHorz = windowWidth / 2;
-    var centerVert = windowHeight / 2;
+    createCanvas(windowWidth,windowHeight, WEBGL);
+    colorMode(RGB, 255, 255, 255);
+    stroke('black');
+    strokeWeight(10);
+    lights();
+    let fov = PI/3; 
+    let cameraZ = (height/2.0) / tan(fov/2.0);
+    perspective(fov, width/height, cameraZ/10.0, cameraZ*10.0);
+    currSteps = 0;
+    stepCount = Math.floor(random(2, 6));
+    stepInterval = 1000;
+    cubeArray.push(new Cube(createVector(0, 0, 0), "none"));
+    moveSound.setVolume(.25);
+    dieSound.setVolume(.55);
 }
 
-// draw() function is called repeatedly, it's the main animation loop
-function draw() {
-    background(220);    
-    // call a method on the instance
-    myInstance.myMethod();
-
-    // Put drawings here
-    var centerHorz = canvasContainer.width() / 2 - 125;
-    var centerVert = canvasContainer.height() / 2 - 125;
-    fill(234, 31, 81);
-    noStroke();
-    rect(centerHorz, centerVert, 250, 250);
-    fill(255);
-    textStyle(BOLD);
-    textSize(140);
-    text("p5*", centerHorz + 10, centerVert + 200);
+function draw(){
+    orbitControl();
+    background('#B6DF06');
+    stroke('black');
+    strokeWeight(5);
+    noFill();
+    box(2100, 2100, 2100);
+    fill('#5c821b');
+    cubeArray[cubeArray.length - 1].newCube();
+    cubeArray[cubeArray.length - 1].draw();
+    let resetSnake = false;
+    for(let i = 0; i < cubeArray.length - 1; i++){
+        cubeArray[i].draw();
+        if(cubeArray[cubeArray.length - 1].origin.equals(cubeArray[i].origin)){
+            dieSound.play();
+            resetSnake = true;
+            break;
+        }
+    }
+    if (resetSnake){
+        background(0);
+        stepInterval = 1000;
+        cubeArray = [new Cube(createVector(0, 0, 0), "none")];
+    }
 }
 
-// mousePressed() function is called once after every time a mouse button is pressed
-function mousePressed() {
-    // code to run when mouse is pressed
+class Cube{
+    constructor(origin, face){
+        this.origin = origin;
+        this.time = 0;
+        this.cameFrom = face;
+        this.possible = ["front", "back", "left", "right", "top", "bottom"];
+        let index = this.possible.findIndex((element) => element == this.OppositeFace(face));
+        if(index != -1){
+            this.possible.splice(index, 1);
+        }
+        moveSound.play();
+    }
+
+    draw(){
+        push();
+        translate(this.origin.x, this.origin.y, this.origin.z);
+        box(100, 100, 100);
+        pop();
+    }
+
+    newCube(){
+        this.time += deltaTime;
+        stepInterval *= 0.9995; 
+        if ((this.time >= stepInterval)){
+            this.time = 0;
+            currSteps++;
+            let face = this.cameFrom;
+            if (stepCount <= currSteps){
+                this.CheckBounds();
+                let index = Math.floor(random(0, this.possible.length));
+                face  = this.possible[index];
+                currSteps = 0;
+                stepCount = Math.floor(random(2, 6));
+            }
+            this.CreateCubeWithFace(face);
+        }
+    }
+
+    CreateCubeWithFace(face){
+        // spawn new cube
+        switch(face){
+            //increase x
+            case "right":
+                cubeArray.push(new Cube(createVector(this.origin.x + 100, this.origin.y, this.origin.z), "right"));
+                break;
+            //decrease x
+            case "left":
+                cubeArray.push(new Cube(createVector(this.origin.x - 100, this.origin.y, this.origin.z), "left"));
+                break;
+            //increase y
+            case "bottom":
+                cubeArray.push(new Cube(createVector(this.origin.x, this.origin.y + 100, this.origin.z), "bottom"));
+                break;
+            //decrease y
+            case "top":
+                cubeArray.push(new Cube(createVector(this.origin.x, this.origin.y - 100, this.origin.z), "top"));
+                break;
+            //increase z
+            case "front":
+                cubeArray.push(new Cube(createVector(this.origin.x, this.origin.y, this.origin.z + 100), "front"));
+                break;
+            //decrease z
+            case "back":
+                cubeArray.push(new Cube(createVector(this.origin.x, this.origin.y, this.origin.z - 100), "back"));
+                break;
+        }
+    }
+
+    OppositeFace(face){
+        switch(face){
+            case "top":
+                return "bottom";
+            case "bottom":
+                return "top";
+            case "front":
+                return "back";
+            case "back":
+                return "front";
+            case "left":
+                return "right";
+            case "right":
+                return "left";
+        }
+    }
+
+    CheckBounds(){
+        if(this.IsOnTopEdge()){
+            let index = this.possible.findIndex((element) => element == "top");
+            if(index != -1){
+                this.possible.splice(index, 1);
+            }
+        }
+        if(this.IsOnBottomEdge()){
+            let index = this.possible.findIndex((element) => element == "bottom");
+            if(index != -1){
+                this.possible.splice(index, 1);
+            }
+        }
+        if(this.IsOnRightEdge()){
+            let index = this.possible.findIndex((element) => element == "right");
+            if(index != -1){
+                this.possible.splice(index, 1);
+            }
+        }
+        if(this.IsOnLeftEdge()){
+            let index = this.possible.findIndex((element) => element == "left");
+            if(index != -1){
+                this.possible.splice(index, 1);
+            }
+        }
+        if(this.IsOnFrontEdge()){
+            let index = this.possible.findIndex((element) => element == "front");
+            if(index != -1){
+                this.possible.splice(index, 1);
+            }
+        }
+        if(this.IsOnBackEdge()){
+            let index = this.possible.findIndex((element) => element == "back");
+            if(index != -1){
+                this.possible.splice(index, 1);
+            }
+        }
+    }
+
+    IsOnTopEdge(){
+        if(this.origin.y - 100 <= -800){
+            return true;
+        }
+        return false;
+    }
+
+    IsOnBottomEdge(){
+        if(this.origin.y + 100 >= 800){
+            return true;
+        }
+        return false;
+    }
+
+    IsOnRightEdge(){
+        if(this.origin.x  + 100 >= 800){
+            return true;
+        }
+        return false;
+    }
+
+    IsOnLeftEdge(){
+        if(this.origin.x - 100 <= -800){
+            return true;
+        }
+        return false;
+    }
+
+    IsOnFrontEdge(){
+        if(this.origin.z + 100 >= 800){
+            return true;
+        }
+        return false;
+    }
+
+    IsOnBackEdge(){
+        if(this.origin.z - 100 <= -800){
+            return true;
+        }
+        return false;
+    }
 }
